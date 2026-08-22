@@ -1,4 +1,4 @@
-const CACHE_NAME='revolve-pwa-flat-v5';
+const CACHE_NAME='revolve-pwa-flat-v7';
 const APP_SHELL=[
   './',
   './index.html',
