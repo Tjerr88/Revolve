@@ -1,0 +1,57 @@
+export function runRevolveTests(api){
+  const results=[];
+  const test=(name,actual,expected)=>results.push({name,pass:JSON.stringify(actual)===JSON.stringify(expected),actual,expected});
+  const daysAgo=(days,type='Resistance A')=>{const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()-days);return{date:date.toISOString(),type,block:1,details:type.startsWith('Resistance')?{session:type.slice(-1),exercises:[]}:{}}};
+
+  test('Upper + uses the minimum 2.5 kg step',api.nudgeChange(40,'+','Upper'),2.5);
+  test('Lower ++ uses ten percent',api.nudgeChange(100,'++','Squat'),10);
+  test('Suggested load never drops below zero',api.suggestedLoad(2.5,'--','Squat'),0);
+  test('A returning 100 kg exercise starts ten percent lower',api.resetLoad(100),90);
+  test('Three sets below the minimum produce --',api.progressionFromReps([3,3,3],'4–7'),'--');
+  test('Two sets below the minimum produce -',api.progressionFromReps([3,3,4],'4–7'),'-');
+  test('Three sets at the minimum stay neutral',api.progressionFromReps([4,4,4],'4–7'),'=');
+  test('Three sets at the maximum produce +',api.progressionFromReps([7,7,7],'4–7'),'+');
+  test('Two maximum sets and five bonus reps produce ++',api.progressionFromReps([7,7,12],'4–7'),'++');
+  test('Incomplete rep entry gives no automatic change',api.progressionFromReps([7,7,''],'4–7'),null);
+  test('Block 1 does not start with a deload',api.isDeloadSession(1,'A',{A:0,B:0,C:0}),false);
+  test('The first A, B and C of a later block are deload sessions',[api.isDeloadSession(2,'A',{A:0,B:0,C:0}),api.isDeloadSession(2,'B',{A:1,B:0,C:0}),api.isDeloadSession(2,'C',{A:1,B:1,C:0})],[true,true,true]);
+  test('A second session of the same letter is no longer a deload',api.isDeloadSession(2,'A',{A:1,B:0,C:0}),false);
+  test('One conditioning activity has two targets',api.conditioningCycle({cardioActivities:[true,false,false]}).length,2);
+  test('Two conditioning activities have four targets',api.conditioningCycle({cardioActivities:[true,true,false]}).length,4);
+  test('Three conditioning activities have six targets',api.conditioningCycle({cardioActivities:[true,true,true]}).length,6);
+  test('Disabling conditioning removes all conditioning targets',api.conditioningCycle({conditioningEnabled:false,cardioActivities:[true,true,true]}).length,0);
+  const simpleTimer={total:60000,elapsed:30000,startedAt:null,label:'Rest',running:false,interval:false};
+  test('Paused timer retains its remaining time',api.timerPosition(simpleTimer,Date.now()).remaining,30000);
+  test('Three consecutive training days trigger Recovery Guard',api.runRecoveryTest([daysAgo(1),daysAgo(2),daysAgo(3)]),{guard:true,rest:false});
+  test('Six consecutive activity days trigger Full Rest',api.runRecoveryTest([1,2,3,4,5,6].map(day=>daysAgo(day,day%2?'Active Mobility':'Resistance A'))).rest,true);
+  let rejectsFuture=false;try{api.validateImportedState({schemaVersion:99,history:[]})}catch{rejectsFuture=true}
+  test('A backup from a future data version is rejected',rejectsFuture,true);
+  test('Explosive work requires a total of at least 12',api.explosiveEligible({recovery:4,energy:4,sleep:3}),false);
+  test('Explosive work also requires every score to be at least 3',api.explosiveEligible({recovery:5,energy:5,sleep:2}),false);
+  test('A fully ready score enables explosive work',api.explosiveEligible({recovery:4,energy:4,sleep:4}),true);
+  test('Phase cycles every three blocks',[1,2,3,4,5,6].map(api.explosivePhase),[1,2,3,1,2,3]);
+  test('The nine-exercise matrix maps A/B/C by phase',[1,2,3].flatMap(block=>['A','B','C'].map(session=>api.getExplosive(block,session).name)),['Plyometric Push-up','Countermovement Jump','Two-hand Kettlebell Swing','Push Press','Dumbbell Squat Jump','Low Bell Snatch','Rotational Medicine Ball Throw','Lateral Bound to Stick','Broad Jump']);
+  test('Suitcase Carry uses the timed per-side prescription',api.supportPrescription('Suitcase Carry','2–3').label,'2–3 × 45–60 sec / side');
+  test('Low-readiness support work reduces only the set range',api.supportPrescription('Lateral Raise','1–2').label,'1–2 × 12–20 reps');
+  test('Side Bend uses a controlled per-side prescription',api.supportPrescription('Side Bend','2–3').label,'2–3 × 8–15 / side');
+  test('Regular vertical hypertrophy uses the dumbbell press',api.verticalHypertrophyExercise,'Dumbbell Shoulder Press');
+  test('Kettlebell Military Press remains available inside HIFT',api.hiftHasMilitaryPress,true);
+  test('Only an enabled interval queue position is HIFT-eligible',[api.isHiftQueueEligible({nextType:'Resistance',condIntensity:1}),api.isHiftQueueEligible({nextType:'Conditioning',condIntensity:0}),api.isHiftQueueEligible({conditioningEnabled:false,nextType:'Conditioning',condIntensity:1}),api.isHiftQueueEligible({nextType:'Conditioning',condIntensity:1})],[false,false,false,true]);
+  const hiftSamples=Array.from({length:30},()=>api.generateHiftWorkout());
+  test('Every generated HIFT stays within 400 SU plus or minus ten percent',hiftSamples.every(x=>x.actualSU>=360&&x.actualSU<=440),true);
+  test('Every generated HIFT contains every movement pattern',hiftSamples.every(x=>['squat','hinge','push','pull','core','hybrid'].every(pattern=>x.exercises.some(e=>e.pattern===pattern))),true);
+  test('No HIFT contains more than two blocks of one pattern',hiftSamples.every(x=>Object.values(x.exercises.reduce((counts,e)=>(counts[e.pattern]=(counts[e.pattern]||0)+1,counts),{})).every(count=>count<=2)),true);
+  test('No generated HIFT repeats an exercise',hiftSamples.every(x=>new Set(x.exercises.map(e=>e.name)).size===x.exercises.length),true);
+  const hiftNow=Date.UTC(2026,0,15),history13=[{type:'Resistance A',date:new Date(hiftNow-13*86400000).toISOString()}],history14=[{type:'Resistance A',date:new Date(hiftNow-14*86400000).toISOString()}];
+  test('HIFT stays locked before fourteen days',[api.hiftCooldownStatus(history13,hiftNow).ready,api.hiftCooldownStatus(history13,hiftNow).daysRemaining],[false,1]);
+  test('HIFT unlocks after fourteen days',api.hiftCooldownStatus(history14,hiftNow).ready,true);
+  const fullConditioningCycle=api.conditioningCycle({cardioActivities:[true,true,true]}),swimIntervalsIndex=fullConditioningCycle.findIndex(x=>x.intensity===1&&x.mod===1);
+  test('Replacing Swim Intervals preserves the next conditioning position',fullConditioningCycle[(swimIntervalsIndex+1)%fullConditioningCycle.length],{intensity:0,mod:2});
+  const comparisonHistory=[{date:new Date(Date.UTC(2026,0,1)).toISOString(),type:'Resistance A',block:1,details:{exercises:[{name:'Back Squat',load:100}]}},{date:new Date(Date.UTC(2026,6,1)).toISOString(),type:'Resistance A',block:4,details:{exercises:[{name:'Back Squat',load:110}]}}],comparison=api.runBlockComparisonTest(comparisonHistory,4);
+  test('Block 4 compares against Block 1',[comparison.baseline,comparison.improved,Number(comparison.average.toFixed(1))],[1,1,10]);
+
+  const failed=results.filter(result=>!result.pass),panel=document.createElement('section');
+  panel.id='revolveTestResults';panel.style.cssText='position:relative;z-index:200;margin:16px auto;padding:18px;width:min(100% - 24px,780px);background:#100d0a;color:#f3e8d5;border:2px solid '+(failed.length?'#d27362':'#65b88a')+';border-radius:16px;font:14px/1.5 system-ui';
+  panel.dataset.status=failed.length?'failed':'passed';panel.innerHTML=`<strong>Revolve logic tests: ${results.length-failed.length}/${results.length} passed</strong><ol>${results.map(result=>`<li>${result.pass?'✓':'✗'} ${result.name}${result.pass?'':` — got ${JSON.stringify(result.actual)}, expected ${JSON.stringify(result.expected)}`}</li>`).join('')}</ol>`;
+  document.body.prepend(panel);
+}
