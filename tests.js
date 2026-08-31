@@ -10,8 +10,13 @@ export function runRevolveTests(api){
   test('Three sets below the minimum produce --',api.progressionFromReps([3,3,3],'4–7'),'--');
   test('Two sets below the minimum produce -',api.progressionFromReps([3,3,4],'4–7'),'-');
   test('Three sets at the minimum stay neutral',api.progressionFromReps([4,4,4],'4–7'),'=');
-  test('Three sets at the maximum produce +',api.progressionFromReps([7,7,7],'4–7'),'+');
-  test('Two maximum sets and five bonus reps produce ++',api.progressionFromReps([7,7,12],'4–7'),'++');
+  test('Three Strength sets at the maximum produce +',api.progressionFromReps([7,7,7],'4–7','Strength'),'+');
+  test('Strength earns ++ at 7 / 7 / 10',api.progressionFromReps([7,7,10],'4–7','Strength'),'++');
+  test('Strength stays at + below its large-jump threshold',api.progressionFromReps([7,7,9],'4–7','Strength'),'+');
+  test('Hypertrophy earns ++ at 11 / 11 / 15',api.progressionFromReps([11,11,15],'8–11','Hypertrophy'),'++');
+  test('Hypertrophy stays at + below its large-jump threshold',api.progressionFromReps([11,11,14],'8–11','Hypertrophy'),'+');
+  test('Endurance earns ++ at 15 / 15 / 20',api.progressionFromReps([15,15,20],'12–15','Endurance'),'++');
+  test('Endurance stays at + below its large-jump threshold',api.progressionFromReps([15,15,19],'12–15','Endurance'),'+');
   test('Incomplete rep entry gives no automatic change',api.progressionFromReps([7,7,''],'4–7'),null);
   test('Block 1 does not start with a deload',api.isDeloadSession(1,'A',{A:0,B:0,C:0}),false);
   test('The first A, B and C of a later block are deload sessions',[api.isDeloadSession(2,'A',{A:0,B:0,C:0}),api.isDeloadSession(2,'B',{A:1,B:0,C:0}),api.isDeloadSession(2,'C',{A:1,B:1,C:0})],[true,true,true]);

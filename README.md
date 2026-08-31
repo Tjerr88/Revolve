@@ -29,7 +29,7 @@ Sessions, loads, reps, rotations, active timers, and settings are stored locally
 - Every in-progress session is saved automatically and can be resumed after closing the app.
 - History can be searched and filtered, with a separate overview per exercise.
 - The most recent completed session can be removed and safely restored to its pre-completion state. Older entries can be corrected without changing the fixed program queue.
-- Filled repetitions automatically determine the next load: two or three sets below the minimum reduce the load, all three sets at the maximum increase it, and five bonus repetitions on the last set produce the larger increase. The current load field shows the direction by colour before the session is completed.
+- Filled repetitions automatically determine the next load: two or three sets below the minimum reduce the load and all three sets at the maximum increase it. A larger `++` increase requires 7 / 7 / 10 for Strength, 11 / 11 / 15 for Hypertrophy, or 15 / 15 / 20 for Endurance. The current load field shows the direction by colour before the session is completed.
 - Core and Accessory loads are stored per exercise, included in session history, and visible in the exercise overview without requiring repetition entry.
 - Completed 18-session blocks include a compact progress summary.
 - History includes a dedicated Blocks view. Because the three-phase exercise cycle repeats, Block 4 compares with Block 1, Block 5 with Block 2, and so on, using the best matching exercise loads in each block.
