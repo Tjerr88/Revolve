@@ -5,6 +5,10 @@ export function runRevolveTests(api){
 
   test('Upper + uses the minimum 2.5 kg step',api.nudgeChange(40,'+','Upper'),2.5);
   test('Lower ++ uses ten percent',api.nudgeChange(100,'++','Squat'),10);
+  test('Zero load can progress by the minimum 2.5 kg step',api.suggestedLoad(0,'+','Upper'),2.5);
+  test('An empty load does not trigger a weight change',api.nudgeChange('','+','Upper'),0);
+  test('Named dumbbell exercises use a 2 kg step',api.nudgeChange(40,'+','Upper',api.loadStepForExercise('Dumbbell Bench Press')),2);
+  test('Ambiguous exercises keep the standard 2.5 kg step',api.loadStepForExercise('Walking Lunge'),2.5);
   test('Suggested load never drops below zero',api.suggestedLoad(2.5,'--','Squat'),0);
   test('A returning 100 kg exercise starts ten percent lower',api.resetLoad(100),90);
   test('Three sets below the minimum produce --',api.progressionFromReps([3,3,3],'4–7'),'--');
@@ -21,10 +25,12 @@ export function runRevolveTests(api){
   test('Block 1 does not start with a deload',api.isDeloadSession(1,'A',{A:0,B:0,C:0}),false);
   test('The first A, B and C of a later block are deload sessions',[api.isDeloadSession(2,'A',{A:0,B:0,C:0}),api.isDeloadSession(2,'B',{A:1,B:0,C:0}),api.isDeloadSession(2,'C',{A:1,B:1,C:0})],[true,true,true]);
   test('A second session of the same letter is no longer a deload',api.isDeloadSession(2,'A',{A:1,B:0,C:0}),false);
-  test('One conditioning activity has two targets',api.conditioningCycle({cardioActivities:[true,false,false]}).length,2);
-  test('Two conditioning activities have four targets',api.conditioningCycle({cardioActivities:[true,true,false]}).length,4);
-  test('Three conditioning activities have six targets',api.conditioningCycle({cardioActivities:[true,true,true]}).length,6);
-  test('Disabling conditioning removes all conditioning targets',api.conditioningCycle({conditioningEnabled:false,cardioActivities:[true,true,true]}).length,0);
+  const fixedCycle=api.conditioningCycle({conditioningEnabled:true});
+  test('Conditioning uses six fixed targets',fixedCycle.length,6);
+  test('Conditioning keeps the agreed mixed-modality order',fixedCycle.map(x=>`${x.intensity?'Intervals':'Zone 2'} — ${api.conditioningNames[x.mod]}`),['Zone 2 — Cross-trainer','Intervals — Swim','Zone 2 — Home Trainer','Intervals — Run','Zone 2 — Swim','Intervals — Row']);
+  test('Disabling conditioning removes all conditioning targets',api.conditioningCycle({conditioningEnabled:false}).length,0);
+  const legacyPositions=[{condIntensity:0,condMod:0},{condIntensity:1,condMod:1},{condIntensity:0,condMod:2},{condIntensity:1,condMod:0},{condIntensity:0,condMod:1},{condIntensity:1,condMod:2}].map(x=>api.migrateConditioningPosition({...x},8));
+  test('The old six queue positions migrate one-to-one',legacyPositions.map(x=>[x.condIntensity,x.condMod]),[[0,0],[1,1],[0,2],[1,3],[0,4],[1,5]]);
   const simpleTimer={total:60000,elapsed:30000,startedAt:null,label:'Rest',running:false,interval:false};
   test('Paused timer retains its remaining time',api.timerPosition(simpleTimer,Date.now()).remaining,30000);
   test('Three consecutive training days trigger Recovery Guard',api.runRecoveryTest([daysAgo(1),daysAgo(2),daysAgo(3)]),{guard:true,rest:false});
@@ -50,7 +56,7 @@ export function runRevolveTests(api){
   const hiftNow=Date.UTC(2026,0,15),history13=[{type:'Resistance A',date:new Date(hiftNow-13*86400000).toISOString()}],history14=[{type:'Resistance A',date:new Date(hiftNow-14*86400000).toISOString()}];
   test('HIFT stays locked before fourteen days',[api.hiftCooldownStatus(history13,hiftNow).ready,api.hiftCooldownStatus(history13,hiftNow).daysRemaining],[false,1]);
   test('HIFT unlocks after fourteen days',api.hiftCooldownStatus(history14,hiftNow).ready,true);
-  const fullConditioningCycle=api.conditioningCycle({cardioActivities:[true,true,true]}),swimIntervalsIndex=fullConditioningCycle.findIndex(x=>x.intensity===1&&x.mod===1);
+  const fullConditioningCycle=api.conditioningCycle({conditioningEnabled:true}),swimIntervalsIndex=fullConditioningCycle.findIndex(x=>x.intensity===1&&x.mod===1);
   test('Replacing Swim Intervals preserves the next conditioning position',fullConditioningCycle[(swimIntervalsIndex+1)%fullConditioningCycle.length],{intensity:0,mod:2});
   const comparisonHistory=[{date:new Date(Date.UTC(2026,0,1)).toISOString(),type:'Resistance A',block:1,details:{exercises:[{name:'Back Squat',load:100}]}},{date:new Date(Date.UTC(2026,6,1)).toISOString(),type:'Resistance A',block:4,details:{exercises:[{name:'Back Squat',load:110}]}}],comparison=api.runBlockComparisonTest(comparisonHistory,4);
   test('Block 4 compares against Block 1',[comparison.baseline,comparison.improved,Number(comparison.average.toFixed(1))],[1,1,10]);

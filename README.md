@@ -30,6 +30,7 @@ Sessions, loads, reps, rotations, active timers, and settings are stored locally
 - History can be searched and filtered, with a separate overview per exercise.
 - The most recent completed session can be removed and safely restored to its pre-completion state. Older entries can be corrected without changing the fixed program queue.
 - Filled repetitions automatically determine the next load: two or three sets below the minimum reduce the load and all three sets at the maximum increase it. A larger `++` increase requires 7 / 7 / 10 for Strength, 11 / 11 / 15 for Hypertrophy, or 15 / 15 / 20 for Endurance. The current load field shows the direction by colour before the session is completed.
+- A recorded load of 0 kg is a valid bodyweight starting point and can progress to the minimum 2.5 kg load. Exercises explicitly named Dumbbell Bench Press, Dumbbell Row, or Dumbbell Shoulder Press use 2 kg load increments; exercises with an ambiguous implement keep the standard 2.5 kg increment.
 - Core and Accessory loads are stored per exercise, included in session history, and visible in the exercise overview without requiring repetition entry.
 - Completed 18-session blocks include a compact progress summary.
 - History includes a dedicated Blocks view. Because the three-phase exercise cycle repeats, Block 4 compares with Block 1, Block 5 with Block 2, and so on, using the best matching exercise loads in each block.
@@ -52,9 +53,13 @@ After the deload occurrence, the next normal occurrence of an exercise resumes a
 
 ## Optional Conditioning and timer signal
 
-Conditioning is enabled by default. It can be disabled under **Settings → Conditioning activities** for people who manage their Zone 2 and interval work elsewhere. With it disabled, Resistance A, B, and C continue rotating directly and existing conditioning history remains intact.
+Conditioning is enabled by default. Its fixed mixed-modality rotation is Cross-trainer Zone 2 → Swim Intervals → Home Trainer Zone 2 → Run Intervals → Swim Zone 2 → Row Intervals. Existing installations migrate their current queue position one-to-one, so updating never advances or resets the rotation.
+
+Conditioning can be disabled under **Settings → Conditioning activities** for people who manage their Zone 2 and interval work elsewhere. With it disabled, Resistance A, B, and C continue rotating directly and existing conditioning history remains intact.
 
 The Android timer uses a louder native alarm-stream signal plus vibration so rest and interval transitions remain noticeable while music is playing. The web version uses a louder multi-tone fallback and vibration when the browser supports it. A test button is available in Settings.
+
+The Android app applies system-bar insets to the native app frame, keeping the complete scrolling interface below the phone status bar instead of allowing content to scroll underneath the clock and network icons.
 
 The Android widget prioritizes the next session on its second line and uses a shorter status such as `DONE TODAY · 10:08` above it. Text scales on narrow widgets, and the widget can be resized horizontally.
 
